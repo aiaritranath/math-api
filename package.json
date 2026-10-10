@@ -1,0 +1,9 @@
+{
+  "name": "private-math-api",
+  "version": "1.0.0",
+  "description": "Private math API with creator info",
+  "main": "api/calculate.js",
+  "dependencies": {
+    "mathjs": "^12.0.0"
+  }
+}
