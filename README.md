@@ -1,138 +1,322 @@
-# Math API
+# 🔢 Private Math API
 
-A lightweight, JSON-based mathematics API built with **Node.js**, **Vercel Serverless Functions**, and **Math.js**. It supports evaluating expressions, differentiating expressions, simplifying expressions, and calculating definite integrals numerically. Requests are protected by an API key.
+A private REST API for evaluating mathematical expressions, differentiating and simplifying expressions, and performing numerical integration. Built with **Node.js**, **Math.js**, and **Vercel Serverless Functions**.
 
-**Creator:** Aritra Nath  
-**Instagram:** [@its_aritra_nath](https://www.instagram.com/its_aritra_nath/)
+Every API response includes creator metadata:
 
-## Features
+- **Creator:** Aritra Nath
+- **Instagram:** [@its_aritra_nath](https://www.instagram.com/its_aritra_nath/)
 
-- **Evaluate** mathematical expressions.
-- **Differentiate** an expression with respect to a variable.
-- **Simplify** mathematical expressions.
-- **Numerical definite integration** using Simpson's rule.
-- **API-key authentication** through the `x-api-key` request header.
-- Supports **GET** and **POST** requests.
-- CORS headers for browser-based clients.
-- Designed to deploy as a Vercel serverless function.
+## ✨ Features
 
-## API endpoint
+- API-key authentication using the `x-api-key` header or `apiKey` query parameter
+- `GET` and `POST` requests
+- Expression evaluation with Math.js
+- Symbolic differentiation
+- Expression simplification
+- Numerical integration using Simpson's rule
+- JSON responses and CORS support
+- Deployable to Vercel
 
-After deployment, the endpoint is:
+## 🚀 Deployment
+
+### 1. Deploy to Vercel
+
+1. Push this project to a GitHub repository.
+2. Import the repository into [Vercel](https://vercel.com/).
+3. In **Project → Settings → Environment Variables**, add:
+
+   | Name | Value |
+   |---|---|
+   | `API_KEY` | A long, random secret value |
+
+4. Apply the variable to the environments you need (Production, Preview, and/or Development).
+5. Redeploy after adding or changing the environment variable.
+
+Your endpoint will be:
 
 ```text
 https://YOUR-PROJECT.vercel.app/api/calculate
 ```
 
-For local development with Vercel, it is typically:
+Replace `YOUR-PROJECT` with your actual Vercel project domain.
 
-```text
-http://localhost:3000/api/calculate
+### 2. Run locally
+
+Requirements: a supported Node.js LTS release and npm.
+
+```bash
+npm install
 ```
 
-## Authentication
+Set `API_KEY` in your environment before running or testing the function. For example, in macOS/Linux:
 
-Set an environment variable named `API_KEY` in your deployment environment. Every calculation request must provide the matching key using the `x-api-key` header.
+```bash
+export API_KEY="replace-with-a-long-random-secret"
+```
+
+In Windows PowerShell:
+
+```powershell
+$env:API_KEY = "replace-with-a-long-random-secret"
+```
+
+This repository is configured for Vercel serverless functions. For local Vercel-style development, install the Vercel CLI and run:
+
+```bash
+npm install --global vercel
+vercel dev
+```
+
+Do not commit your real API key or put it directly into source code.
+
+## 🔐 Authentication
+
+The server reads the expected secret from the `API_KEY` environment variable.
+
+You can provide the key in either of these ways:
+
+**Recommended — request header**
 
 ```http
 x-api-key: YOUR_API_KEY
 ```
 
-The implementation also accepts an `apiKey` query parameter for compatibility, but using the header is recommended because query-string secrets can be recorded in URLs and logs. **Never commit your real API key to GitHub.**
+**Alternative — query parameter**
 
-## Supported operations
-
-Pass the operation in the `op` field. The default is `evaluate`.
-
-| Operation (`op`) | Aliases | Required parameters | Description |
-|---|---|---|---|
-| `evaluate` | `eval` | `expr` | Evaluates a mathematical expression. |
-| `derivative` | `diff` | `expr`, `var` | Finds the symbolic derivative with respect to `var`. |
-| `simplify` | — | `expr` | Simplifies a mathematical expression. |
-| `integrate` | `integral` | `expr`, `var`, `a`, `b` for definite integration | Numerically integrates the expression from lower bound `a` to upper bound `b` using Simpson's rule. |
-
-For integration, provide `var`, `a`, and `b` to calculate a definite integral. Symbolic integration is **not enabled by default**; without those bounds, the API returns a message explaining that numerical integration needs the variable and bounds.
-
-## Usage examples
-
-Replace `YOUR_API_KEY` with the value configured in your environment.
-
-### 1. Evaluate an expression (GET)
-
-```bash
-curl -G "https://YOUR-PROJECT.vercel.app/api/calculate" \
-  -H "x-api-key: YOUR_API_KEY" \
-  --data-urlencode "expr=sqrt(25) + 10" \
-  --data-urlencode "op=evaluate"
+```text
+?apiKey=YOUR_API_KEY
 ```
 
-Example success response:
+Prefer the header because query parameters can be recorded in browser history, server logs, analytics, and shared URLs. Never expose this private key in browser-side JavaScript or a public frontend. If a frontend needs to use the API, call it through your own protected backend.
+
+## 📡 Endpoint
+
+```text
+/api/calculate
+```
+
+Supported methods: `GET`, `POST`, and `OPTIONS` (for CORS preflight).
+
+### Request parameters
+
+| Key | Required? | Description | Example |
+|---|---|---|---|
+| `expr` | Yes | Mathematical expression to process | `sqrt(16)+pi` |
+| `op` | No | Operation; defaults to `evaluate` | `derivative` |
+| `var` | For derivative; for bounded integration | Variable name | `x` |
+| `a` | For numerical integration | Lower bound | `0` |
+| `b` | For numerical integration | Upper bound | `1` |
+| `x-api-key` header or `apiKey` query parameter | Yes | API secret | `YOUR_API_KEY` |
+
+For `POST`, send the calculation fields as a JSON object. Authentication can still be sent in the `x-api-key` header.
+
+## ⚙️ Supported operations
+
+| `op` value | Alias | Description | Additional fields |
+|---|---|---|---|
+| `evaluate` | `eval` | Evaluates an expression | None |
+| `derivative` | `diff` | Symbolically differentiates an expression | `var` |
+| `simplify` | — | Simplifies an expression | None |
+| `integrate` | `integral` | Numerically integrates over a range; may attempt optional symbolic integration if the optional package is installed | For numerical integration: `var`, `a`, `b` |
+
+### 1. Evaluate an expression
+
+**GET**
+
+```text
+https://YOUR-PROJECT.vercel.app/api/calculate?expr=sqrt(16)%2Bpi
+```
+
+Include your key as the `x-api-key` header, or add `&apiKey=YOUR_API_KEY` for a quick test.
+
+**POST**
+
+```bash
+curl -X POST "https://YOUR-PROJECT.vercel.app/api/calculate" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{"expr":"2 + 3 * 4","op":"evaluate"}'
+```
+
+Example response:
 
 ```json
 {
   "success": true,
   "operation": "evaluate",
-  "expression": "sqrt(25) + 10",
-  "result": 15,
+  "expression": "2 + 3 * 4",
+  "result": 14,
   "creator": "Aritra Nath",
   "instagram": "@its_aritra_nath"
 }
 ```
 
-### 2. Find a derivative (POST)
+### 2. Differentiate an expression
 
 ```bash
 curl -X POST "https://YOUR-PROJECT.vercel.app/api/calculate" \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
-  -d '{"expr":"x^2 + 3*x","op":"derivative","var":"x"}'
+  -d '{"expr":"x^2 + x","op":"derivative","var":"x"}'
 ```
 
-### 3. Simplify an expression (GET)
+The result is returned as a string representing the derivative.
 
-```bash
-curl -G "https://YOUR-PROJECT.vercel.app/api/calculate" \
-  -H "x-api-key: YOUR_API_KEY" \
-  --data-urlencode "expr=2*x + 3*x" \
-  --data-urlencode "op=simplify"
-```
-
-### 4. Calculate a definite integral (POST)
-
-This example calculates the integral of `x^2` from `0` to `3`.
+### 3. Simplify an expression
 
 ```bash
 curl -X POST "https://YOUR-PROJECT.vercel.app/api/calculate" \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
-  -d '{"expr":"x^2","op":"integrate","var":"x","a":0,"b":3}'
+  -d '{"expr":"(x^2 - 1)/(x - 1)","op":"simplify"}'
 ```
 
-The integral is evaluated numerically, so the returned value may contain a small floating-point rounding difference.
+Math.js simplification is expression-based; transformations can depend on the form of the input and do not necessarily handle every algebraic identity.
 
-## Request parameters
+### 4. Numerical integration
 
-| Parameter | Type | Required? | Details |
-|---|---|---|---|
-| `expr` | String | Yes | Mathematical expression to process. |
-| `op` | String | No | Operation to run; defaults to `evaluate`. |
-| `var` | String | For `derivative`; for definite `integrate` | Variable name, such as `x`. |
-| `a` | Number | For definite `integrate` | Lower integration bound. |
-| `b` | Number | For definite `integrate` | Upper integration bound. |
+The API uses Simpson's rule with 1,000 subintervals by default. Simpson's rule works best for sufficiently smooth functions; the result is a numerical approximation.
 
-For GET requests, pass parameters as query parameters. For POST requests, send them in a JSON body.
+```bash
+curl -X POST "https://YOUR-PROJECT.vercel.app/api/calculate" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{"expr":"x^2","op":"integrate","var":"x","a":0,"b":1}'
+```
 
-## Response and errors
+Expected result is approximately `0.3333333333`.
 
-Successful calculations return HTTP `200` with `success: true`, the requested operation, the original expression, and the result.
+If `a`, `b`, or `var` are omitted, the code attempts to load the optional `mathjs-simple-integral` package for symbolic integration. That package is **not listed in the supplied `package.json`**, so symbolic integration will normally return a helpful message unless you install and configure a compatible package.
 
-Errors are returned as JSON and may include:
+## 🧮 Math.js expression reference
 
-- `400 Bad Request` — missing expression, missing required variable, unsupported operation, invalid integration bounds, or a calculation error.
-- `401 Unauthorized` — the API key is missing or invalid.
-- `500 Internal Server Error` — the server's `API_KEY` environment variable is not configured.
+Expressions are evaluated by [Math.js](https://mathjs.org/docs/expressions/syntax.html). The functions below are common examples, not a guarantee that every function or syntax is available in every context. Refer to the Math.js documentation for exact behavior and supported signatures.
 
-Example error response:
+### Arithmetic and operators
+
+```text
++  -  *  /  ^  %  mod  !  ()
+```
+
+Examples: `2 + 3 * 4`, `5!`, `2^10`
+
+### Constants
+
+```text
+pi  e  i  Infinity  NaN  true  false  null  tau  phi
+```
+
+Availability and meaning depend on Math.js syntax and version.
+
+### Powers, roots, and logarithms
+
+```text
+sqrt(x)  cbrt(x)  square(x)  pow(x,y)  exp(x)
+log(x)  log10(x)  log2(x)  nthRoot(x,n)
+```
+
+### Trigonometry and hyperbolic functions
+
+```text
+sin(x)  cos(x)  tan(x)  asin(x)  acos(x)  atan(x)
+atan2(y,x)  sinh(x)  cosh(x)  tanh(x)
+asinh(x)  acosh(x)  atanh(x)
+```
+
+Additional functions may be available, depending on Math.js: `sec`, `csc`, `cot`, `asec`, `acsc`, `acot`, `sech`, `csch`, and `coth`. Check the Math.js documentation for supported names.
+
+### Rounding and absolute values
+
+```text
+abs(x)  sign(x)  ceil(x)  floor(x)  round(x)  fix(x)  trunc(x)
+```
+
+### Combinatorics and probability
+
+```text
+factorial(n)  combinations(n,k)  permutations(n,k)
+random()  randomInt(min,max)
+```
+
+Other special functions may be supported by Math.js; check the documentation for the installed version.
+
+### Statistics
+
+Common examples include:
+
+```text
+min(...)  max(...)  sum(...)  mean(...)  median(...)
+mode(...)  std(...)  variance(...)  prod(...)  cumsum(...)
+```
+
+### Matrices and arrays
+
+Examples:
+
+```text
+det([1,2;3,4])
+transpose([1,2;3,4])
+inv([1,2;3,4])
+dot([1,2,3],[4,5,6])
+size([1,2;3,4])
+```
+
+Math.js supports matrix and array operations; exact syntax and input shapes matter.
+
+### Algebra and calculus
+
+```text
+derivative(expr, variable)
+simplify(expr)
+rationalize(expr)
+solve(equation, variable)
+```
+
+These are examples of Math.js functions, but their availability and exact behavior should be verified against the installed Math.js version. The API's dedicated `derivative` and `simplify` operations are implemented directly in the endpoint. Numerical integration is implemented by this project; `integrate` is not a standard Math.js expression function.
+
+### Units
+
+Examples:
+
+```text
+5 cm to inch
+10 kg to lb
+```
+
+### Logical, comparison, and bitwise operations
+
+Examples of supported expression syntax and functions can include:
+
+```text
+and  or  not  xor
+==  !=  <  >  <=  >=
+bitAnd(a,b)  bitOr(a,b)  bitXor(a,b)
+leftShift(a,b)  rightShift(a,b)  bitNot(a)
+```
+
+Check Math.js documentation for exact names and syntax.
+
+### Strings and formatting
+
+Math.js supports strings and a range of formatting and utility functions. Function names such as `concat`, `format`, and `print` may have context-specific behavior; check the documentation before relying on them in an API expression.
+
+> **Tip:** URL-encode expressions when calling the endpoint with GET. For example, encode `+` as `%2B`, or use a client that handles query-string encoding. POST requests avoid most URL-encoding issues.
+
+## 📋 Error responses
+
+### Missing expression — HTTP 400
+
+```json
+{
+  "success": false,
+  "error": "Missing \"expr\" parameter.",
+  "creator": "Aritra Nath",
+  "instagram": "@its_aritra_nath"
+}
+```
+
+### Invalid or missing API key — HTTP 401
 
 ```json
 {
@@ -143,73 +327,67 @@ Example error response:
 }
 ```
 
-## Run locally
+### API key not configured — HTTP 500
 
-### Prerequisites
-
-- Node.js and npm
-- A Vercel account for deployment (optional for local use, but the Vercel CLI is used to emulate the deployment environment)
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/aiaritranath/math-api.git
-cd math-api
+```json
+{
+  "success": false,
+  "error": "Server API key not configured.",
+  "creator": "Aritra Nath",
+  "instagram": "@its_aritra_nath"
+}
 ```
 
-### 2. Install dependencies
+### Unsupported operation — HTTP 400
 
-```bash
-npm install
+```json
+{
+  "success": false,
+  "error": "Unsupported operation: unknown",
+  "supported": ["evaluate", "derivative", "simplify", "integrate"],
+  "creator": "Aritra Nath",
+  "instagram": "@its_aritra_nath"
+}
 ```
 
-### 3. Configure the API key
+Other expression or calculation errors return HTTP 400 with an `error` message and creator metadata.
 
-Create a `.env.local` file in the project root and add a private key:
+## 🧰 Technology stack
 
-```env
-API_KEY=replace-this-with-a-long-random-secret
-```
+- Node.js
+- [Math.js](https://mathjs.org/)
+- Vercel Serverless Functions
 
-Do not commit `.env.local` or share this secret publicly.
-
-### 4. Start the local Vercel development server
-
-```bash
-npx vercel dev
-```
-
-Follow any first-run prompts from the Vercel CLI. The API should be available at `http://localhost:3000/api/calculate` when the local server starts on port `3000`.
-
-## Deploy to Vercel
-
-1. Push the project to your GitHub repository.
-2. Import the repository into [Vercel](https://vercel.com/).
-3. In the Vercel project's **Settings → Environment Variables**, add `API_KEY` and set its value to a strong, private secret.
-4. Enable the variable for the environments you use (Production, Preview, and/or Development).
-5. Deploy or redeploy the project.
-6. Send requests to `https://YOUR-PROJECT.vercel.app/api/calculate` with the `x-api-key` header.
-
-The included `vercel.json` uses Vercel configuration version `2`; the API handler lives at `api/calculate.js`.
-
-## Project structure
+## 📁 Project structure
 
 ```text
 math-api/
 ├── api/
-│   └── calculate.js   # API handler and math operations
-├── package.json       # Project metadata and Math.js dependency
-├── vercel.json        # Vercel configuration
+│   └── calculate.js
+├── package.json
+├── vercel.json
 └── README.md
 ```
 
-## Notes and limitations
+## 🔧 Adding another top-level operation
 
-- Definite integration is performed numerically with Simpson's rule and a fixed number of subintervals; it is an approximation, not a symbolic antiderivative.
-- Symbolic integration is not enabled by default in this project.
-- The endpoint currently allows cross-origin requests (`Access-Control-Allow-Origin: *`). Authentication is still required, but you may wish to restrict allowed origins for your own deployment.
-- An API key alone does not provide rate limiting or usage quotas. Add platform-level limits or other protections if you expose the endpoint publicly.
+Open `api/calculate.js` and add a new `case` to the `switch (operation.toLowerCase())` statement. Validate any required parameters, calculate the result, and return a consistent JSON response. Test locally and redeploy to Vercel.
 
-## License
+## 🔒 Security notes
 
-No license file was included in the project archive. Add a `LICENSE` file if you want to specify how others may use, modify, or redistribute this project.
+- Keep `API_KEY` private and configure it as a Vercel environment variable.
+- Do not commit secrets or publish them in client-side code.
+- Use the `x-api-key` header instead of a query parameter for normal usage.
+- The supplied endpoint currently allows CORS from any origin (`*`). CORS is not authentication; consider restricting allowed origins if only specific browser-based sites should call it.
+- Math expressions are user input. Consider rate limiting, request-size limits, and additional resource controls before exposing the endpoint publicly.
+- This README documents the behavior of the supplied implementation; it does not imply that every Math.js function listed above has been independently tested through this API.
+
+## 👨‍💻 Creator
+
+**Aritra Nath**
+
+- Instagram: [@its_aritra_nath](https://www.instagram.com/its_aritra_nath/)
+
+---
+
+If this project helps you, consider giving the repository a ⭐ on GitHub.
